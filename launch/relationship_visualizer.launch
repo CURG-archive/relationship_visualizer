@@ -1,0 +1,3 @@
+<launch>
+  <node name="relationship_visualizer" pkg="relationship_visualizer" type="relationship_visualizer_node" /> 
+</launch>
