@@ -1,15 +1,85 @@
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
-int main(int argc, char **argv) 
-{
 
-  ros::init(argc, argv, "relationship_visualizer");
-  ros::NodeHandle node_handle;
+namespace relation_viz {
+    class RelationViz {
+        private:
+            // node handle
+            ros::NodeHandle nHandle;
+            // publisher
+            ros::Publisher pub = 
+                nodeHandle.advertise<visualization_msgs::Marker>(
+                    "visualization_marker", 1);
+            // subscriber
+            ros::Subscriber sub;
+            void segmentedObjectsReceived(
+                const perception_msgs::SegmentedObjectList::ConstPtr &msg);
+        public:
+            // constructor
+            RelationViz();
+    }
 
-  ros::Publisher vis_pub = node_handle.advertise<visualization_msgs::Marker>( "visualization_marker", 1 );
+    RelationViz::RelationViz(): nHandle("") {
+        sub = nHandle.subscribe(
+            "segmented_objects", 1000,
+            &RelationViz::segmentedObjectsReceived, this);
+        pub = nHandle.advertize<sensor_msgs/PointCloud2>(
+            "visualized_segmented_objects", 10);
+        ROS_INFO("relation_viz node ready")
+    }
 
-  	while(node_handle.ok())
-  	{
+    RelationViz::segmentedObjsCallback(
+    const perception_msgs::SegmentedObjectList::ConstPtr &msg) {
+        ROS_INFO("received segmented object list message");
+
+        vector<perception_msgs::SegmentedObject> segmentedMsgs
+            = msg.get()->segmentedObjects;
+
+        for (int i = 0; i< segmentedMsgs.size(); i++) {
+            //get segmentedObject from message
+            perception_msgs::SegmentedObject
+                msg = segmentedMsgs[i];
+            pcl::PointCloud<pcl::PointXYZ>::Ptr 
+                segmentedObjectPCLPointCloudXYZ(
+                    new pcl::PointCloud<pcl::PointXYZ>());
+            sensor_msgs::PointCloud2 
+                msgPointCloud = msg.segmentedObjectPointCloud;
+            pcl::PCLPointCloud2
+                segmentedObjectPCLPointCloud;
+            pcl_conversions::toPCL(
+                msgPointCloud,
+                segmentedObjectPCLPointCloud);
+            pcl::fromPCLPointCloud2(
+                    segmentedObjectPCLPointCloud, 
+                    *segmentedObjectPCLPointCloudXYZ);
+            SegmentedObject segmented = SegmentedObject(
+                    msg.segmentedObjectID, 
+                    segmentedObjectPCLPointCloudXYZ);
+            // TODO uniquely color objects
+            // ...
+
+            //build property message from property
+            perception_msgs::ObjectCenterProperty objectCenterPropertyMessage;
+            objectCenterPropertyMessage.objectCenter = centerOfMassProperty->centerOfMassPoint;
+            objectCenterPropertyMessage.segmentedObjectId = centerOfMassProperty->segmentedObjectId;
+            objectCenterPropertyMessage.propertyId = centerOfMassProperty->propertyId;
+
+            //send message
+            detectedPropertyPublisher.publish(objectCenterPropertyMessage);
+        }
+    }
+}
+
+int main(int argc, char **argv) {
+    ros::init(argc, argv, "relation_viz");
+    // TODO do we need this nHandle? the node?
+    ros::NodeHandle nHandle;
+    relation_viz::RelationViz node;
+    ros::spin();
+    return 0;
+
+    /* TODO remove
+  	while(nHandle.ok()) {
   		ros::Duration(0.5).sleep();
   		ROS_INFO("sending message");
 	    visualization_msgs::Marker marker;
@@ -35,7 +105,7 @@ int main(int argc, char **argv)
 		marker.color.b = 0.0;
 		//only if using a MESH_RESOURCE marker type:
 		marker.mesh_resource = "package://pr2_description/meshes/base_v0/base.dae";
-    	vis_pub.publish( marker );
-  }
-  return 0;
+    	vis_pub.publish(marker);
+    }
+    */
 }
