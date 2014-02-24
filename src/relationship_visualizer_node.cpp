@@ -31,6 +31,10 @@ namespace relation_viz {
         ROS_INFO("received segmented object list message");
 
         std::vector<perception_msgs::SegmentedObject> segmentedMsgs = msg.get()->segmentedObjects;
+
+        for (int i = 0; i< segmentedMsgs.size(); i++) {
+            pub.publish(segmentedMsgs[i].segmentedObjectPointCloud);
+        }
     }
 }
 
