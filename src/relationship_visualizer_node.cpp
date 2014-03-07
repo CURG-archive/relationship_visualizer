@@ -6,12 +6,14 @@
 #include "perception_msgs/SegmentedObject.h"
 #include "perception_msgs/SegmentedObjectList.h"
 #include "perception_msgs/ObjectCenterProperty.h"
+#include "pcl_conversions/pcl_conversions.h"
+#include "pcl_ros/point_cloud.h"
 
 namespace relation_viz {
     class RelationViz {
         private:
             ros::NodeHandle nHandle;
-            ros::Publisher  pub;
+            ros::Publisher  segmentedPub;
             ros::Subscriber sub;
             void segmentedObjsReceived(
                 const perception_msgs::SegmentedObjectList::ConstPtr &msg);
@@ -22,18 +24,27 @@ namespace relation_viz {
 
     RelationViz::RelationViz(): nHandle("") {
         sub = nHandle.subscribe("segmented_objects", 1000, &RelationViz::segmentedObjsReceived, this);
-        pub = nHandle.advertise<sensor_msgs::PointCloud2>("visualized_segmented_objects", 10);
+        segmentedPub = nHandle.advertise<pcl::PointCloud<pcl::PointXYZRGB> > ("visualized_segmented_objects", 10);
         ROS_INFO("relation_viz node ready");
     }
 
-    void RelationViz::segmentedObjsReceived(
-    const perception_msgs::SegmentedObjectList::ConstPtr &msg) {
+    void RelationViz::segmentedObjsReceived(const perception_msgs::SegmentedObjectList::ConstPtr &msg) {
         ROS_INFO("received segmented object list message");
 
         std::vector<perception_msgs::SegmentedObject> segmentedMsgs = msg.get()->segmentedObjects;
+        uint8_t r = 255, g = 0, b = 0;
+        int32_t rgb = (r << 16) | (g << 8) | b;
 
         for (int i = 0; i< segmentedMsgs.size(); i++) {
-            pub.publish(segmentedMsgs[i].segmentedObjectPointCloud);
+            // sensor_msg::PointCloud2 -> pcl::PointCloud<PointXYZRGB>
+            pcl::PointCloud<pcl::PointXYZRGB> *segmented = new pcl::PointCloud<pcl::PointXYZRGB>();
+            pcl::fromROSMsg(segmentedMsgs[i].segmentedObjectPointCloud, *segmented);
+            // color segmented object
+            // TODO uniquely color, don't just color all red
+            for (int i = 0; i < segmented->points.size(); ++i) {
+                segmented->points[i].rgb = *reinterpret_cast<float*>(&rgb);
+            }
+            segmentedPub.publish(*segmented);
         }
     }
 }

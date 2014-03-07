@@ -8,6 +8,7 @@ find_package(catkin REQUIRED roscpp roslib sensor_msgs visualization_msgs percep
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(PCL REQUIRED)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -88,7 +89,11 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
+include_directories(
+        ${PCL_INCLUDE_DIRS}
+)
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 ## Declare a cpp library
 # add_library(relationship_visualizer
@@ -105,6 +110,7 @@ add_executable(relationship_visualizer_node src/relationship_visualizer_node.cpp
 ## Specify libraries to link a library or executable target against
  target_link_libraries(relationship_visualizer_node
    ${catkin_LIBRARIES}
+   ${PCL_LIBRARIES}
  )
 
 #############
