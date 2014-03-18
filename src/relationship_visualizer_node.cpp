@@ -23,7 +23,7 @@ namespace relation_viz {
     };
 
     RelationViz::RelationViz(): nHandle("") {
-        sub = nHandle.subscribe("segmented_objects", 1000, &RelationViz::segmentedObjsReceived, this);
+        sub = nHandle.subscribe("segmented_objects", 100, &RelationViz::segmentedObjsReceived, this);
         segmentedPub = nHandle.advertise<pcl::PointCloud<pcl::PointXYZRGB> > ("visualized_segmented_objects", 10);
         ROS_INFO("relation_viz node ready");
     }
@@ -45,6 +45,7 @@ namespace relation_viz {
                 segmented->points[i].rgb = *reinterpret_cast<float*>(&rgb);
             }
             segmentedPub.publish(*segmented);
+            delete segmented;
         }
     }
 }
